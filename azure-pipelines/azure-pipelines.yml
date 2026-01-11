@@ -143,16 +143,10 @@ stages:
               instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
               onTimeout: 'reject'
       
-      - job: TerraformExecute
-        displayName: 'Execute Terraform'
-        dependsOn: ApprovalGate
-        pool:
-          vmImage: $(vmImageName)
-        steps:
-          - template: templates/terraform-apply.yml
-            parameters:
-              environment: '${{ parameters.environment }}'
-              action: '${{ parameters.action }}'
+      - template: templates/terraform-apply.yml
+        parameters:
+          environment: '${{ parameters.environment }}'
+          action: '${{ parameters.action }}'
 
   # ============================================
   # STAGE 6: Deploy to Kubernetes (only for deploy action)
