@@ -1,0 +1,5 @@
+variables:
+  BACKEND_RESOURCE_GROUP: 'tfstate-rg'
+  BACKEND_STORAGE_ACCOUNT: 'tfstatedevops1768147514'
+  BACKEND_CONTAINER: 'tfstate'
+  ENVIRONMENT: 'dev'

@@ -1,0 +1,178 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - app/*
+      - terraform/*
+      - kubernetes/*
+      - azure-pipelines/*
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+parameters:
+  - name: action
+    displayName: 'Action to perform'
+    type: string
+    default: 'deploy'
+    values:
+      - deploy
+      - destroy
+  - name: environment
+    displayName: 'Environment'
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - test
+      - prod
+
+variables:
+  - name: dockerRegistryServiceConnection
+    value: 'acr-service-connection'
+  - name: imageRepository
+    value: 'task-manager'
+  - name: dockerfilePath
+    value: 'app/Dockerfile'
+  - name: tag
+    value: '$(Build.BuildId)'
+  - name: vmImageName
+    value: 'ubuntu-latest'
+
+stages:
+  # ============================================
+  # STAGE 1: Build and Test Application
+  # ============================================
+  - stage: Build
+    displayName: 'Build and Test'
+    condition: eq('${{ parameters.action }}', 'deploy')
+    jobs:
+      - job: BuildApp
+        displayName: 'Build Application'
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: 'Use Python 3.11'
+          
+          - script: |
+              cd app
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            displayName: 'Install dependencies'
+          
+          - script: |
+              cd app
+              pip install pytest pytest-cov
+              pytest tests/ --cov=. --cov-report=xml --cov-report=html || true
+            displayName: 'Run unit tests'
+          
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFiles: '**/test-*.xml'
+              testRunTitle: 'Python Tests'
+          
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+
+  # ============================================
+  # STAGE 2: Security Scanning
+  # ============================================
+  - stage: SecurityScan
+    displayName: 'Security Scanning'
+    dependsOn: Build
+    condition: eq('${{ parameters.action }}', 'deploy')
+    jobs:
+      - template: templates/security-scan.yml
+
+  # ============================================
+  # STAGE 3: Build and Push Docker Image
+  # ============================================
+  - stage: Docker
+    displayName: 'Build and Push Docker'
+    dependsOn: SecurityScan
+    condition: eq('${{ parameters.action }}', 'deploy')
+    jobs:
+      - template: templates/docker-build.yml
+        parameters:
+          dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
+          imageRepository: $(imageRepository)
+          dockerfilePath: $(dockerfilePath)
+          tag: $(tag)
+
+  # ============================================
+  # STAGE 4: Terraform Plan
+  # ============================================
+  - stage: TerraformPlan
+    displayName: 'Terraform Plan - ${{ parameters.environment }}'
+    dependsOn: 
+      - Docker
+    condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
+    jobs:
+      - template: templates/terraform-plan.yml
+        parameters:
+          environment: '${{ parameters.environment }}'
+          action: '${{ parameters.action }}'
+
+  # ============================================
+  # STAGE 5: Terraform Apply or Destroy
+  # ============================================
+  - stage: TerraformApply
+    displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
+    dependsOn: TerraformPlan
+    condition: succeeded()
+    jobs:
+      - job: ApprovalGate
+        displayName: 'Manual Approval'
+        pool: server
+        steps:
+          - task: ManualValidation@0
+            inputs:
+              notifyUsers: 'devops-team@example.com'
+              instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
+              onTimeout: 'reject'
+      
+      - job: TerraformExecute
+        displayName: 'Execute Terraform'
+        dependsOn: ApprovalGate
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - template: templates/terraform-apply.yml
+            parameters:
+              environment: '${{ parameters.environment }}'
+              action: '${{ parameters.action }}'
+
+  # ============================================
+  # STAGE 6: Deploy to Kubernetes (only for deploy action)
+  # ============================================
+  - stage: DeployK8s
+    displayName: 'Deploy to Kubernetes - ${{ parameters.environment }}'
+    dependsOn: TerraformApply
+    condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+    jobs:
+      - deployment: DeployApp
+        displayName: 'Deploy Application'
+        environment: '${{ parameters.environment }}'
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: templates/deploy-k8s.yml
+                  parameters:
+                    environment: '${{ parameters.environment }}'
+                    imageRepository: $(imageRepository)
+                    tag: $(tag)
