@@ -1,0 +1,26 @@
+parameters:
+  - name: dockerRegistryServiceConnection
+    type: string
+  - name: imageRepository
+    type: string
+  - name: dockerfilePath
+    type: string
+  - name: tag
+    type: string
+
+jobs:
+  - job: BuildPush
+    displayName: 'Build and Push Docker Image'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - task: Docker@2
+        displayName: 'Build and Push to ACR'
+        inputs:
+          command: buildAndPush
+          repository: ${{ parameters.imageRepository }}
+          dockerfile: ${{ parameters.dockerfilePath }}
+          containerRegistry: ${{ parameters.dockerRegistryServiceConnection }}
+          tags: |
+            ${{ parameters.tag }}
+            latest

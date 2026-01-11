@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Tasks</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #333; }
+        .btn-back {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .tasks-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .task-item {
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-info h3 { color: #333; margin-bottom: 5px; }
+        .task-meta { color: #999; font-size: 14px; }
+        .task-actions { display: flex; gap: 10px; }
+        .task-status {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .status-pending { background: #ffeaa7; color: #d63031; }
+        .status-in-progress { background: #74b9ff; color: #0984e3; }
+        .status-completed { background: #55efc4; color: #00b894; }
+        .btn-delete {
+            padding: 8px 15px;
+            background: #ff7675;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 All Tasks</h1>
+            <a href="/" class="btn-back">← Back to Dashboard</a>
+        </div>
+        
+        <div class="tasks-container">
+            {% for task in tasks %}
+            <div class="task-item">
+                <div class="task-info">
+                    <h3>{{ task.title }}</h3>
+                    <div class="task-meta">Created: {{ task.created }} | ID: {{ task.id }}</div>
+                </div>
+                <div class="task-actions">
+                    <span class="task-status status-{{ task.status }}" onclick="cycleStatus({{ task.id }}, '{{ task.status }}')">
+                        {{ task.status }}
+                    </span>
+                    <button class="btn-delete" onclick="deleteTask({{ task.id }})">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <script>
+        function cycleStatus(taskId, currentStatus) {
+            const statusCycle = {
+                'pending': 'in-progress',
+                'in-progress': 'completed',
+                'completed': 'pending'
+            };
+            
+            fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({status: statusCycle[currentStatus]})
+            }).then(() => location.reload());
+        }
+        
+        function deleteTask(taskId) {
+            if (confirm('Delete this task?')) {
+                fetch(`/api/tasks/${taskId}`, {
+                    method: 'DELETE'
+                }).then(() => location.reload());
+            }
+        }
+    </script>
+</body>
+</html>

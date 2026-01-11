@@ -1,0 +1,78 @@
+parameters:
+  - name: environment
+    type: string
+  - name: imageRepository
+    type: string
+  - name: tag
+    type: string
+
+jobs:
+  - job: DeployToK8s
+    displayName: 'Deploy to Kubernetes'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          buildType: 'current'
+          artifactName: 'terraform-outputs-${{ parameters.environment }}'
+          targetPath: '$(Pipeline.Workspace)'
+      
+      - task: AzureCLI@2
+        displayName: 'Get AKS Credentials and Deploy'
+        inputs:
+          azureSubscription: 'azure-service-connection'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Read Terraform outputs
+            ACR_NAME=$(cat $(Pipeline.Workspace)/outputs.json | jq -r '.acr_name.value')
+            AKS_NAME=$(cat $(Pipeline.Workspace)/outputs.json | jq -r '.aks_cluster_name.value')
+            RG_NAME=$(cat $(Pipeline.Workspace)/outputs.json | jq -r '.resource_group_name.value')
+            ACR_SERVER=$(cat $(Pipeline.Workspace)/outputs.json | jq -r '.acr_login_server.value')
+            
+            echo "Deploying to AKS: $AKS_NAME in $RG_NAME"
+            echo "Using image: $ACR_SERVER/${{ parameters.imageRepository }}:${{ parameters.tag }}"
+            
+            # Get AKS credentials
+            az aks get-credentials \
+              --resource-group $RG_NAME \
+              --name $AKS_NAME \
+              --overwrite-existing
+            
+            # Create namespace if not exists
+            kubectl create namespace ${{ parameters.environment }} --dry-run=client -o yaml | kubectl apply -f -
+            
+            # Update image in deployment
+            cd kubernetes/base
+            sed -i "s|image:.*|image: $ACR_SERVER/${{ parameters.imageRepository }}:${{ parameters.tag }}|g" deployment.yaml
+            
+            # Apply manifests
+            kubectl apply -f deployment.yaml -n ${{ parameters.environment }}
+            kubectl apply -f service.yaml -n ${{ parameters.environment }}
+            kubectl apply -f hpa.yaml -n ${{ parameters.environment }}
+            kubectl apply -f network-policy.yaml -n ${{ parameters.environment }}
+            kubectl apply -f pdb.yaml -n ${{ parameters.environment }}
+            
+            # Wait for rollout
+            kubectl rollout status deployment/task-manager -n ${{ parameters.environment }} --timeout=5m
+            
+            # Get service external IP
+            echo "Waiting for LoadBalancer IP..."
+            sleep 30
+            kubectl get svc task-manager-service -n ${{ parameters.environment }}
+            
+            EXTERNAL_IP=$(kubectl get svc task-manager-service -n ${{ parameters.environment }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            echo "Application deployed!"
+            echo "Access your app at: http://$EXTERNAL_IP"
+      
+      - task: Kubernetes@1
+        displayName: 'Get Deployment Status'
+        inputs:
+          connectionType: 'Azure Resource Manager'
+          azureSubscriptionEndpoint: 'azure-service-connection'
+          azureResourceGroup: '$(cat $(Pipeline.Workspace)/outputs.json | jq -r .resource_group_name.value)'
+          kubernetesCluster: '$(cat $(Pipeline.Workspace)/outputs.json | jq -r .aks_cluster_name.value)'
+          namespace: '${{ parameters.environment }}'
+          command: 'get'
+          arguments: 'all'
