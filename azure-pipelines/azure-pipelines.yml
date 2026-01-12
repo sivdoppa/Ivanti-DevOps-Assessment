@@ -55,11 +55,6 @@ stages:
         displayName: 'Build Application'
         pool:
           name: azureciagent
-        steps:
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '3.11'
-            displayName: 'Use Python 3.11'
           
           - script: |
               cd app
@@ -70,19 +65,8 @@ stages:
           - script: |
               cd app
               pip install pytest pytest-cov
-              pytest tests/ --cov=. --cov-report=xml --cov-report=html || true
+              pytest tests/ --cov=. --cov-report=html || true
             displayName: 'Run unit tests'
-          
-          - task: PublishTestResults@2
-            condition: succeededOrFailed()
-            inputs:
-              testResultsFiles: '**/test-*.xml'
-              testRunTitle: 'Python Tests'
-          
-          - task: PublishCodeCoverageResults@1
-            inputs:
-              codeCoverageTool: 'Cobertura'
-              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
 
   # ============================================
   # STAGE 2: Security Scanning
