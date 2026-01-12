@@ -4,10 +4,6 @@ jobs:
     pool:
       name: azureciagent
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '3.11'
-      
       - script: |
           pip install bandit
           bandit -r app/ -f json -o bandit-report.json || true
