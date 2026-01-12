@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: task-manager-ingress
+  name: python-webapp-ingress
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -9,16 +9,16 @@ metadata:
 spec:
   tls:
     - hosts:
-        - task-manager.example.com
-      secretName: task-manager-tls
+        - webapp.yourdomain.com
+      secretName: webapp-tls
   rules:
-    - host: task-manager.example.com
+    - host: webapp.yourdomain.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: task-manager-service
+                name: python-webapp-service
                 port:
-                  number: 80
+                  number: 80                  
