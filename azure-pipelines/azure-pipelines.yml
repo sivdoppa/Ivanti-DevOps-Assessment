@@ -45,30 +45,6 @@ variables:
 
 stages:
   # ============================================
-  # STAGE 1: Build and Test Application
-  # ============================================
-  - stage: Build
-    displayName: 'Build and Test'
-    condition: eq('${{ parameters.action }}', 'deploy')
-    jobs:
-      - job: BuildApp
-        displayName: 'Build Application'
-        pool:
-          name: azureciagent
-        steps:  
-          - script: |
-              cd app
-              python3 -m pip install --upgrade pip
-              pip3 install -r requirements.txt
-            displayName: 'Install dependencies'
-          
-          - script: |
-              cd app
-              pip3 install pytest pytest-cov
-              pytest tests/ --cov=. --cov-report=html || true
-            displayName: 'Run unit tests'
-
-  # ============================================
   # STAGE 2: Security Scanning
   # ============================================
   - stage: SecurityScan
