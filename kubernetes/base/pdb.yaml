@@ -1,9 +1,9 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: task-manager-pdb
+  name: python-webapp-pdb
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: task-manager
+      app: python-webapp
