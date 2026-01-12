@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: task-manager
+  name: python-webapp
   labels:
-    app: task-manager
+    app: python-webapp
     version: v1
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: task-manager
+      app: python-webapp
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,14 +18,22 @@ spec:
   template:
     metadata:
       labels:
-        app: task-manager
+        app: python-webapp
         version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
     spec:
+      # Security context at pod level
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       
+      # Pod anti-affinity for high availability
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -36,12 +44,12 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - task-manager
+                        - python-webapp
                 topologyKey: kubernetes.io/hostname
       
       containers:
-        - name: app
-          image: acrdevxxxxxx.azurecr.io/task-manager:latest  # Will be updated by pipeline
+        - name: webapp
+          image: python-webapp:latest
           imagePullPolicy: Always
           
           ports:
@@ -49,6 +57,7 @@ spec:
               containerPort: 5000
               protocol: TCP
           
+          # Environment variables
           env:
             - name: ENVIRONMENT
               valueFrom:
@@ -58,7 +67,10 @@ spec:
               value: "1.0.0"
             - name: PORT
               value: "5000"
+            - name: PYTHONUNBUFFERED
+              value: "1"
           
+          # Resource limits and requests
           resources:
             requests:
               memory: "128Mi"
@@ -67,41 +79,38 @@ spec:
               memory: "256Mi"
               cpu: "500m"
           
+          # Liveness probe - checks if app is alive
           livenessProbe:
             httpGet:
               path: /health
               port: 5000
+              scheme: HTTP
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             successThreshold: 1
             failureThreshold: 3
           
+          # Readiness probe - checks if app is ready to serve traffic
           readinessProbe:
             httpGet:
               path: /ready
               port: 5000
+              scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
             successThreshold: 1
             failureThreshold: 3
           
+          # Startup probe - gives app time to start
           startupProbe:
             httpGet:
               path: /health
               port: 5000
+              scheme: HTTP
             initialDelaySeconds: 0
             periodSeconds: 5
             timeoutSeconds: 3
             successThreshold: 1
             failureThreshold: 30
-          
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
