@@ -2,7 +2,7 @@ jobs:
   - job: StaticAnalysis
     displayName: 'Static Code Analysis'
     pool:
-      vmImage: 'ubuntu-latest'
+      name: azureciagent
     steps:
       - task: UsePythonVersion@0
         inputs:
@@ -22,19 +22,19 @@ jobs:
   - job: ContainerScan
     displayName: 'Container Vulnerability Scan'
     pool:
-      vmImage: 'ubuntu-latest'
+      name: azureciagent
     steps:
       - task: Docker@2
         displayName: 'Build Docker image for scanning'
         inputs:
           command: build
           dockerfile: 'app/Dockerfile'
-          repository: 'task-manager-scan'
+          repository: 'ivanti-devops-app-scan'
           tags: 'scan'
       
       - script: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy:latest image --severity HIGH,CRITICAL \
             --exit-code 0 --no-progress \
-            task-manager-scan:scan
+            ivanti-devops-app-scan:scan
         displayName: 'Run Trivy vulnerability scan'
