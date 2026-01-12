@@ -44,30 +44,16 @@ variables:
     value: '$(Build.BuildId)'
 
 stages:
-  # ============================================
-  # STAGE 2: Security Scanning
-  # ============================================
-  - stage: SecurityScan
-    displayName: 'Security Scanning'
-    dependsOn: Build
-    condition: eq('${{ parameters.action }}', 'deploy')
-    jobs:
-      - template: templates/security-scan.yml
-
-  # ============================================
-  # STAGE 3: Build and Push Docker Image
-  # ============================================
-  - stage: Docker
-    displayName: 'Build and Push Docker'
-    dependsOn: SecurityScan
-    condition: eq('${{ parameters.action }}', 'deploy')
-    jobs:
-      - template: templates/docker-build.yml
-        parameters:
-          dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
-          imageRepository: $(imageRepository)
-          dockerfilePath: $(dockerfilePath)
-          tag: $(tag)
+- stage: Build
+  displayName: 'Build and Push Docker'
+  condition: eq('${{ parameters.action }}', 'deploy')
+  jobs:
+    - template: templates/docker-build.yml
+      parameters:
+        dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
+        imageRepository: $(imageRepository)
+        dockerfilePath: $(dockerfilePath)
+        tag: $(tag)
 
   # ============================================
   # STAGE 4: Terraform Plan
