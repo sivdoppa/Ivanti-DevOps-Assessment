@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: task-manager-service
+  name: python-webapp-service
   labels:
-    app: task-manager
+    app: python-webapp
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /health
 spec:
   type: LoadBalancer
   selector:
-    app: task-manager
+    app: python-webapp
   ports:
     - port: 80
       targetPort: 5000
