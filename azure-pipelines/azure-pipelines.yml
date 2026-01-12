@@ -58,13 +58,13 @@ stages:
         steps:  
           - script: |
               cd app
-              python -m pip install --upgrade pip
-              pip install -r requirements.txt
+              python3 -m pip install --upgrade pip
+              pip3 install -r requirements.txt
             displayName: 'Install dependencies'
           
           - script: |
               cd app
-              pip install pytest pytest-cov
+              pip3 install pytest pytest-cov
               pytest tests/ --cov=. --cov-report=html || true
             displayName: 'Run unit tests'
 
