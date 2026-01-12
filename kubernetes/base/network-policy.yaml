@@ -1,15 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: task-manager-network-policy
+  name: python-webapp-network-policy
 spec:
   podSelector:
     matchLabels:
-      app: task-manager
+      app: python-webapp
   policyTypes:
     - Ingress
     - Egress
   ingress:
+    # Allow traffic from ingress controller
     - from:
         - namespaceSelector:
             matchLabels:
@@ -17,18 +18,16 @@ spec:
       ports:
         - protocol: TCP
           port: 5000
+    # Allow traffic from same namespace
     - from:
         - podSelector: {}
       ports:
         - protocol: TCP
           port: 5000
-  egress:
-    - to:
-        - namespaceSelector: {}
-      ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 53
-        - protocol: UDP
-          port: 53
+egress:
+  - to:
+      - ipBlock:
+          cidr: 0.0.0.0/0
+    ports:
+      - protocol: TCP
+        port: 443
