@@ -42,8 +42,6 @@ variables:
     value: 'app/Dockerfile'
   - name: tag
     value: '$(Build.BuildId)'
-  - name: vmImageName
-    value: 'ubuntu-latest'
 
 stages:
   # ============================================
@@ -56,7 +54,7 @@ stages:
       - job: BuildApp
         displayName: 'Build Application'
         pool:
-          vmImage: $(vmImageName)
+          name: azureciagent
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -160,7 +158,7 @@ stages:
         displayName: 'Deploy Application'
         environment: '${{ parameters.environment }}'
         pool:
-          vmImage: $(vmImageName)
+          name: azureciagent
         strategy:
           runOnce:
             deploy:
