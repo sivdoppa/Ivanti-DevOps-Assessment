@@ -44,7 +44,6 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   azure_active_directory_role_based_access_control {
-    managed            = true
     azure_rbac_enabled = true
   }
 
@@ -94,8 +93,8 @@ resource "azurerm_role_assignment" "aks_network" {
 }
 
 resource "azurerm_role_assignment" "aks_acr" {
-  count                = var.acr_id != "" ? 1 : 0
-  scope                = var.acr_id
+  for_each = var.acr_id != "" ? { this = var.acr_id } : {}
+  scope                = each.value
   role_definition_name = "AcrPull"
   principal_id         = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
 }
