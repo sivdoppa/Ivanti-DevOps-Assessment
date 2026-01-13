@@ -66,7 +66,7 @@ stages:
 - stage: TerraformPlan
   displayName: 'Terraform Plan - ${{ parameters.environment }}'
   dependsOn: 
-    - Docker
+    - Build
   condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
   jobs:
     - template: templates/terraform-plan.yml
@@ -90,12 +90,18 @@ stages:
           inputs:
             notifyUsers: 'devops-team@example.com'
             instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
-            onTimeout: 'reject'
-      
-    - template: templates/terraform-apply.yml
-      parameters:
-        environment: '${{ parameters.environment }}'
-        action: '${{ parameters.action }}'
+            onTimeout: reject
+
+    - job: TerraformApply
+      displayName: 'Terraform Apply'
+      dependsOn: ApprovalGate
+      pool:
+        name: azureciagent
+      steps:
+        - template: templates/terraform-apply.yml
+          parameters:
+            environment: '${{ parameters.environment }}'
+            action: '${{ parameters.action }}'
 
   # ============================================
   # STAGE 6: Deploy to Kubernetes (only for deploy action)
