@@ -37,7 +37,7 @@ variables:
   - name: dockerRegistryServiceConnection
     value: 'acr-service-connection'
   - name: imageRepository
-    value: 'task-manager'
+    value: 'pyton-webapp'
   - name: dockerfilePath
     value: 'app/Dockerfile'
   - name: tag
@@ -48,12 +48,17 @@ stages:
   displayName: 'Build and Push Docker'
   condition: eq('${{ parameters.action }}', 'deploy')
   jobs:
-    - template: templates/docker-build.yml
-      parameters:
-        dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
-        imageRepository: $(imageRepository)
-        dockerfilePath: $(dockerfilePath)
-        tag: $(tag)
+    - job: Build
+      displayName: Build
+      pool:
+        name: azureciagent
+      steps:
+        - template: templates/docker-build.yml
+          parameters:
+            dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
+            imageRepository: $(imageRepository)
+            dockerfilePath: $(dockerfilePath)
+            tag: $(tag)
 
   # ============================================
   # STAGE 4: Terraform Plan
