@@ -1,5 +1,6 @@
 variables:
   BACKEND_RESOURCE_GROUP: 'tfstate-rg'
   BACKEND_STORAGE_ACCOUNT: 'tfstatedevops1768147514'
+  AZURE_SERVICE_CONNECTION: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
   BACKEND_CONTAINER: 'tfstate'
   ENVIRONMENT: 'prod'
