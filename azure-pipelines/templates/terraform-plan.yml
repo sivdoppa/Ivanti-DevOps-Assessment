@@ -9,7 +9,7 @@ jobs:
   - job: TerraformPlan
     displayName: 'Terraform Plan'
     pool:
-      vmImage: 'ubuntu-latest'
+      name: azureciagent
     steps:
       - task: TerraformInstaller@0
         inputs:
