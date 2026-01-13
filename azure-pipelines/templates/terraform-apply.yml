@@ -5,52 +5,47 @@ parameters:
     type: string
     default: 'deploy'
 
-jobs:
-  - job: TerraformApply
+steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'terraform-plan-${{ parameters.environment }}'
+      targetPath: 'terraform/environments/${{ parameters.environment }}'
+      
+  - task: TerraformInstaller@0
+    inputs:
+      terraformVersion: '1.5.0'
+      
+  - task: AzureCLI@2
     displayName: 'Terraform ${{ parameters.action }}'
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          buildType: 'current'
-          artifactName: 'terraform-plan-${{ parameters.environment }}'
-          targetPath: 'terraform/environments/${{ parameters.environment }}'
-      
-      - task: TerraformInstaller@0
-        inputs:
-          terraformVersion: '1.5.0'
-      
-      - task: AzureCLI@2
-        displayName: 'Terraform ${{ parameters.action }}'
-        inputs:
-          azureSubscription: 'azure-service-connection'
-          scriptType: 'bash'
-          scriptLocation: 'inlineScript'
-          inlineScript: |
-            cd terraform/environments/${{ parameters.environment }}
+    inputs:
+      azureSubscription: 'azure-service-connection'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        cd terraform/environments/${{ parameters.environment }}
             
-            # Initialize Terraform
-            terraform init \
-              -backend-config="resource_group_name=$(BACKEND_RESOURCE_GROUP)" \
-              -backend-config="storage_account_name=$(BACKEND_STORAGE_ACCOUNT)" \
-              -backend-config="container_name=$(BACKEND_CONTAINER)" \
-              -backend-config="key=${{ parameters.environment }}.terraform.tfstate"
+        # Initialize Terraform
+        terraform init \
+          -backend-config="resource_group_name=$(BACKEND_RESOURCE_GROUP)" \
+          -backend-config="storage_account_name=$(BACKEND_STORAGE_ACCOUNT)" \
+          -backend-config="container_name=$(BACKEND_CONTAINER)" \
+          -backend-config="key=${{ parameters.environment }}.terraform.tfstate"
             
-            # Apply or destroy
-            terraform apply -auto-approve tfplan
+        # Apply or destroy
+        terraform apply -auto-approve tfplan
             
-            # Output results
-            if [ "${{ parameters.action }}" == "deploy" ]; then
-              terraform output -json > outputs.json
-              echo "Infrastructure deployed successfully!"
-            else
-              echo "Infrastructure destroyed successfully!"
-            fi
+        # Output results
+        if [ "${{ parameters.action }}" == "deploy" ]; then
+          terraform output -json > outputs.json
+          echo "Infrastructure deployed successfully!"
+        else
+          echo "Infrastructure destroyed successfully!"
+        fi
       
-      - task: PublishPipelineArtifact@1
-        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
-        inputs:
-          targetPath: 'terraform/environments/${{ parameters.environment }}/outputs.json'
-          artifact: 'terraform-outputs-${{ parameters.environment }}'
-          publishLocation: 'pipeline'
+  - task: PublishPipelineArtifact@1
+    condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+    inputs:
+      targetPath: 'terraform/environments/${{ parameters.environment }}/outputs.json'
+      artifact: 'terraform-outputs-${{ parameters.environment }}'
+      publishLocation: 'pipeline'
