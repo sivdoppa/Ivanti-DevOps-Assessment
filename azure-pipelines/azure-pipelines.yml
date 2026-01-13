@@ -63,59 +63,59 @@ stages:
   # ============================================
   # STAGE 4: Terraform Plan
   # ============================================
-  - stage: TerraformPlan
-    displayName: 'Terraform Plan - ${{ parameters.environment }}'
-    dependsOn: 
-      - Docker
-    condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
-    jobs:
-      - template: templates/terraform-plan.yml
-        parameters:
-          environment: '${{ parameters.environment }}'
-          action: '${{ parameters.action }}'
+- stage: TerraformPlan
+  displayName: 'Terraform Plan - ${{ parameters.environment }}'
+  dependsOn: 
+    - Docker
+  condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
+  jobs:
+    - template: templates/terraform-plan.yml
+      parameters:
+        environment: '${{ parameters.environment }}'
+        action: '${{ parameters.action }}'
 
   # ============================================
   # STAGE 5: Terraform Apply or Destroy
   # ============================================
-  - stage: TerraformApply
-    displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
-    dependsOn: TerraformPlan
-    condition: succeeded()
-    jobs:
-      - job: ApprovalGate
-        displayName: 'Manual Approval'
-        pool: server
-        steps:
-          - task: ManualValidation@0
-            inputs:
-              notifyUsers: 'devops-team@example.com'
-              instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
-              onTimeout: 'reject'
+- stage: TerraformApply
+  displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
+  dependsOn: TerraformPlan
+  condition: succeeded()
+  jobs:
+    - job: ApprovalGate
+      displayName: 'Manual Approval'
+      pool: server
+      steps:
+        - task: ManualValidation@0
+          inputs:
+            notifyUsers: 'devops-team@example.com'
+            instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
+            onTimeout: 'reject'
       
-      - template: templates/terraform-apply.yml
-        parameters:
-          environment: '${{ parameters.environment }}'
-          action: '${{ parameters.action }}'
+    - template: templates/terraform-apply.yml
+      parameters:
+        environment: '${{ parameters.environment }}'
+        action: '${{ parameters.action }}'
 
   # ============================================
   # STAGE 6: Deploy to Kubernetes (only for deploy action)
   # ============================================
-  - stage: DeployK8s
-    displayName: 'Deploy to Kubernetes - ${{ parameters.environment }}'
-    dependsOn: TerraformApply
-    condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
-    jobs:
-      - deployment: DeployApp
-        displayName: 'Deploy Application'
-        environment: '${{ parameters.environment }}'
-        pool:
-          name: azureciagent
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - template: templates/deploy-k8s.yml
-                  parameters:
-                    environment: '${{ parameters.environment }}'
-                    imageRepository: $(imageRepository)
-                    tag: $(tag)
+- stage: DeployK8s
+  displayName: 'Deploy to Kubernetes - ${{ parameters.environment }}'
+  dependsOn: TerraformApply
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+  jobs:
+    - deployment: DeployApp
+      displayName: 'Deploy Application'
+      environment: '${{ parameters.environment }}'
+      pool:
+        name: azureciagent
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - template: templates/deploy-k8s.yml
+                parameters:
+                  environment: '${{ parameters.environment }}'
+                  imageRepository: $(imageRepository)
+                  tag: $(tag)
