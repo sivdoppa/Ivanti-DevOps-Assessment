@@ -11,10 +11,6 @@ jobs:
     pool:
       name: azureciagent
     steps:
-      - task: TerraformInstaller@0
-        inputs:
-          terraformVersion: '1.5.0'
-      
       - task: AzureCLI@2
         displayName: 'Terraform Init and Plan'
         inputs:
