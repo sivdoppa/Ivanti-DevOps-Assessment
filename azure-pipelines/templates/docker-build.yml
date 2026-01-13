@@ -8,19 +8,14 @@ parameters:
   - name: tag
     type: string
 
-jobs:
-  - job: BuildPush
-    displayName: 'Build and Push Docker Image'
-    pool:
-      name: azureciagent
-    steps:
-      - task: Docker@2
-        displayName: 'Build and Push to ACR'
-        inputs:
-          command: buildAndPush
-          repository: ${{ parameters.imageRepository }}
-          dockerfile: ${{ parameters.dockerfilePath }}
-          containerRegistry: ${{ parameters.dockerRegistryServiceConnection }}
-          tags: |
-            ${{ parameters.tag }}
-            latest
+steps:
+  - task: Docker@2
+    displayName: 'Build and Push to ACR'
+    inputs:
+      command: buildAndPush
+      repository: ${{ parameters.imageRepository }}
+      dockerfile: ${{ parameters.dockerfilePath }}
+      containerRegistry: ${{ parameters.dockerRegistryServiceConnection }}
+      tags: |
+        ${{ parameters.tag }}
+        latest            
