@@ -64,16 +64,72 @@ stages:
   # ============================================
   # STAGE 4: Terraform Plan
   # ============================================
-- stage: TerraformPlan
-  displayName: 'Terraform Plan - ${{ parameters.environment }}'
+- stage: TerraformValidate
+  displayName: 'Terraform Validate - ${{ parameters.environment }}'
   dependsOn: 
     - Build
   condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
   jobs:
-    - template: templates/terraform-plan.yml
-      parameters:
-        environment: '${{ parameters.environment }}'
-        action: '${{ parameters.action }}'
+    - job: TerraformValidate
+      pool:
+        name: azureciagent
+      steps:
+      - task: TerraformInstaller@1
+        inputs:
+          terraformVersion: 'latest'
+
+      - task: TerraformTask@5
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+          backendAzureRmUseEntraIdForAuthentication: false
+          backendServiceArm: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
+          backendAzureRmResourceGroupName: 'tfstate-rg'
+          backendAzureRmStorageAccountName: 'tfstatedevops1768147514'
+          backendAzureRmContainerName: 'tfstate'
+          backendAzureRmKey: 'dev.terraform.tfstate'
+    
+      - task: TerraformTask@5
+        inputs:
+          provider: 'azurerm'
+          command: 'validate'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+
+- stage: TerraformPlan
+  displayName: 'Terraform Plan - ${{ parameters.environment }}'
+  dependsOn: 
+    - TerraformValidate
+  condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
+  jobs: 
+    - job: TerraformPlan
+      displayName: 'Terraform Plan'
+      pool:
+        name: azureciagent
+      steps:
+      - task: TerraformInstaller@1
+        inputs:
+          terraformVersion: 'latest'
+    
+      - task: TerraformTask@5
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+          backendAzureRmUseEntraIdForAuthentication: false
+          backendServiceArm: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
+          backendAzureRmResourceGroupName: 'tfstate-rg'
+          backendAzureRmStorageAccountName: 'tfstatedevops1768147514'
+          backendAzureRmContainerName: 'tfstate'
+          backendAzureRmKey: 'dev.terraform.tfstate'
+
+      - task: TerraformTask@5
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+          environmentServiceNameAzureRM: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
+    
 
   # ============================================
   # STAGE 5: Terraform Apply or Destroy
