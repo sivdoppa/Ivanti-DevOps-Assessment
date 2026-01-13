@@ -199,6 +199,16 @@ stages:
   dependsOn: TerraformApply
   condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
   jobs:
+    - job: ApprovalGate
+      displayName: 'Manual Approval'
+      pool: server
+      steps:
+        - task: ManualValidation@0
+          inputs:
+            notifyUsers: 'sivaramk185@gmail.com'
+            instructions: 'Approval required before deploying to K8s ${{ parameters.action }} ${{ parameters.environment }} cluster'
+            onTimeout: reject
+
     - deployment: DeployApp
       displayName: 'Deploy Application'
       environment: '${{ parameters.environment }}'
