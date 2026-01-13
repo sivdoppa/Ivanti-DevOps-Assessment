@@ -22,6 +22,7 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = true
     }
   }
+  resource_provider_registrations = "none"
 }
 
 locals {
