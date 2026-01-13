@@ -43,7 +43,15 @@ variables:
     value: 'app/Dockerfile'
   - name: tag
     value: '$(Build.BuildId)'
+  - name: tfCommand
+    ${{ if eq(parameters.action, 'deploy') }}:
+      value: 'apply'
+    ${{ else }}:
+      value: 'destroy'  
 
+# ============================================
+# STAGE 1: Docker Image Build and Push
+# ============================================
 stages:
 - stage: Build
   displayName: 'Build and Push Docker'
@@ -54,15 +62,16 @@ stages:
       pool:
         name: azureciagent
       steps:
-        - template: templates/docker-build.yml
-          parameters:
-            dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
-            imageRepository: $(imageRepository)
-            dockerfilePath: $(dockerfilePath)
-            tag: $(tag)
+        - task: Docker@2
+          inputs:
+            containerRegistry: '$(dockerRegistryServiceConnection)'
+            repository: '$(imageRepository)'
+            command: 'buildAndPush'
+            Dockerfile: '$(dockerfilePath)'
+            tags: '$(tag)'
 
   # ============================================
-  # STAGE 4: Terraform Plan
+  # STAGE 2: Terraform Validate
   # ============================================
 - stage: TerraformValidate
   displayName: 'Terraform Validate - ${{ parameters.environment }}'
@@ -71,6 +80,7 @@ stages:
   condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
   jobs:
     - job: TerraformValidate
+      displayName: 'Terraform Validate'
       pool:
         name: azureciagent
       steps:
@@ -82,20 +92,23 @@ stages:
         inputs:
           provider: 'azurerm'
           command: 'init'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           backendAzureRmUseEntraIdForAuthentication: false
-          backendServiceArm: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
-          backendAzureRmResourceGroupName: 'tfstate-rg'
-          backendAzureRmStorageAccountName: 'tfstatedevops1768147514'
-          backendAzureRmContainerName: 'tfstate'
-          backendAzureRmKey: 'dev.terraform.tfstate'
+          backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
+          backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
+          backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
+          backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
+          backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
       
       - task: TerraformTask@5
         inputs:
           provider: 'azurerm'
           command: 'validate'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
 
+  # ============================================
+  # STAGE 3: Terraform Plan
+  # ============================================
 - stage: TerraformPlan
   displayName: 'Terraform Plan - ${{ parameters.environment }}'
   dependsOn: 
@@ -115,20 +128,20 @@ stages:
         inputs:
           provider: 'azurerm'
           command: 'init'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           backendAzureRmUseEntraIdForAuthentication: false
-          backendServiceArm: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
-          backendAzureRmResourceGroupName: 'tfstate-rg'
-          backendAzureRmStorageAccountName: 'tfstatedevops1768147514'
-          backendAzureRmContainerName: 'tfstate'
-          backendAzureRmKey: 'dev.terraform.tfstate'
+          backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
+          backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
+          backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
+          backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
+          backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
 
       - task: TerraformTask@5
         inputs:
           provider: 'azurerm'
           command: 'plan'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/dev'
-          environmentServiceNameAzureRM: 'Subscription for assessment(610ed2c5-fc7f-4033-a484-d625b87b03d9)'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+          environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
     
 
   # ============================================
@@ -145,7 +158,7 @@ stages:
       steps:
         - task: ManualValidation@0
           inputs:
-            notifyUsers: 'devops-team@example.com'
+            notifyUsers: 'sivaramk185@gmail.com'
             instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
             onTimeout: reject
 
@@ -155,10 +168,28 @@ stages:
       pool:
         name: azureciagent
       steps:
-        - template: templates/terraform-apply.yml
-          parameters:
-            environment: '${{ parameters.environment }}'
-            action: '${{ parameters.action }}'
+      - task: TerraformInstaller@1
+        inputs:
+          terraformVersion: '1.14.3'
+    
+      - task: TerraformTask@5
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+          backendAzureRmUseEntraIdForAuthentication: false
+          backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
+          backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
+          backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
+          backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
+          backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
+
+      - task: TerraformTask@5
+        inputs:
+          provider: 'azurerm'
+          command: '$(tfCommand)'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+          environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
 
   # ============================================
   # STAGE 6: Deploy to Kubernetes (only for deploy action)
