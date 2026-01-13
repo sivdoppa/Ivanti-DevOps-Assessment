@@ -12,10 +12,6 @@ steps:
       artifactName: 'terraform-plan-${{ parameters.environment }}'
       targetPath: 'terraform/environments/${{ parameters.environment }}'
       
-  - task: TerraformInstaller@0
-    inputs:
-      terraformVersion: '1.5.0'
-      
   - task: AzureCLI@2
     displayName: 'Terraform ${{ parameters.action }}'
     inputs:
