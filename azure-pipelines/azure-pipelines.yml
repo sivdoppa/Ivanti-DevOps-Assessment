@@ -34,6 +34,7 @@ parameters:
       - prod
 
 variables:
+  - template: variables/${{ parameters.environment }}.yml
   - name: dockerRegistryServiceConnection
     value: 'acr-service-connection'
   - name: imageRepository
