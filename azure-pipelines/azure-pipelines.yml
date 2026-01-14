@@ -154,7 +154,7 @@ stages:
 - stage: TerraformApply
   displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
   dependsOn: TerraformPlan
-  condition: always()
+  condition: succeeded()
   jobs:
     - job: ApprovalGate
       displayName: 'Manual Approval'
