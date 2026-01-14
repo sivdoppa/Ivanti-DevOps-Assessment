@@ -225,6 +225,7 @@ stages:
 
     - deployment: DeployApp
       displayName: 'Deploy Application'
+      dependsOn: ApprovalGate
       environment: '${{ parameters.environment }}'
       pool:
         name: azureciagent
