@@ -146,7 +146,6 @@ stages:
         inputs:
           provider: 'azurerm'
           command: 'plan'
-          arguments: ${{ format('-lock=false {0}', (eq(parameters.action, 'destroy') && '-destroy' || '')) }}
           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
     
@@ -193,7 +192,6 @@ stages:
         inputs:
           provider: 'azurerm'
           command: '$(tfCommand)'
-          arguments: '-lock=false'
           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
 
