@@ -198,7 +198,7 @@ stages:
             
             echo "Successfully generated outputs.json"
             cat $(System.DefaultWorkingDirectory)/outputs.json
-        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy')
+        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
 
       - task: PublishPipelineArtifact@1
         displayName: 'Publish TF Outputs'
