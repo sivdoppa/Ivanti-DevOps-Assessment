@@ -49,9 +49,8 @@ variables:
     ${{ else }}:
       value: 'destroy'  
 
-# ============================================
+
 # STAGE 1: Docker Image Build and Push
-# ============================================
 stages:
 - stage: Build
   displayName: 'Build and Push Docker'
@@ -70,9 +69,8 @@ stages:
             Dockerfile: '$(dockerfilePath)'
             tags: '$(tag)'
 
-  # ============================================
-  # STAGE 2: Terraform Validate
-  # ============================================
+
+# STAGE 2: Terraform Validate
 - stage: TerraformValidate
   displayName: 'Terraform Validate - ${{ parameters.environment }}'
   dependsOn: 
@@ -106,9 +104,8 @@ stages:
           command: 'validate'
           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
 
-  # ============================================
-  # STAGE 3: Terraform Plan
-  # ============================================
+
+# STAGE 3: Terraform Plan
 - stage: TerraformPlan
   displayName: 'Terraform Plan - ${{ parameters.environment }}'
   dependsOn: 
@@ -144,9 +141,7 @@ stages:
           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
     
 
-  # ============================================
-  # STAGE 5: Terraform Apply or Destroy
-  # ============================================
+# STAGE 5: Terraform Apply or Destroy
 - stage: TerraformApply
   displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
   dependsOn: TerraformPlan
@@ -191,9 +186,22 @@ stages:
           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
 
-  # ============================================
-  # STAGE 6: Deploy to Kubernetes (only for deploy action)
-  # ============================================
+      - bash: |
+          set -e
+          echo "Capturing Terraform outputs..."
+          terraform output -json > $(System.DefaultWorkingDirectory)/outputs.json
+        displayName: 'Capture Terraform Outputs'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish TF Outputs'
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/outputs.json'
+          artifact: 'terraform-outputs-${{ parameters.environment }}'
+        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+  
+# STAGE 6: Deploy to Kubernetes (only for deploy action)
 - stage: DeployK8s
   displayName: 'Deploy to Kubernetes - ${{ parameters.environment }}'
   dependsOn: TerraformApply

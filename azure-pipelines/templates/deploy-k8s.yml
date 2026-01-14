@@ -17,7 +17,7 @@ steps:
   - task: AzureCLI@2
     displayName: 'Deploy python-webapp to AKS'
     inputs:
-      azureSubscription: 'azure-service-connection'
+      azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
@@ -52,8 +52,7 @@ steps:
         # Update image in deployment (temporary approach)
         # ---------------------------------------------------
         echo "Updating image in deployment.yaml"
-        sed -i "s|image:.*|image: $ACR_SERVER/${{ parameters.imageRepository }}:${{ parameters.tag }}|g" \
-          kubernetes/base/deployment.yaml
+        sed -i "s|image:.*$|image: $ACR_SERVER/${{ parameters.imageRepository }}:${{ parameters.tag }}|g" kubernetes/base/deployment.yaml
 
         # ---------------------------------------------------
         # Apply Kubernetes manifests
@@ -63,11 +62,7 @@ steps:
         kubectl apply -f kubernetes/base/hpa.yaml -n $NAMESPACE
         kubectl apply -f kubernetes/base/network-policy.yaml -n $NAMESPACE
         kubectl apply -f kubernetes/base/pdb.yaml -n $NAMESPACE
-
-        # Apply ingress if present
-        if [ -f kubernetes/base/ingress.yaml ]; then
-          kubectl apply -f kubernetes/base/ingress.yaml -n $NAMESPACE
-        fi
+        kubectl apply -f kubernetes/base/ingress.yaml -n $NAMESPACE
 
         # ---------------------------------------------------
         # Wait for rollout
