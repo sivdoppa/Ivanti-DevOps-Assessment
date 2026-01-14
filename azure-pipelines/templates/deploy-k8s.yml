@@ -23,6 +23,11 @@ steps:
       inlineScript: |
         set -e
 
+        if ! command -v kubelogin &> /dev/null; then
+          echo "kubelogin not found, installing..."
+          sudo az aks install-cli
+        fi
+
         echo "Reading Terraform outputs..."
         ACR_SERVER=$(jq -r '.acr_login_server.value' $(Pipeline.Workspace)/outputs.json)
         AKS_NAME=$(jq -r '.aks_cluster_name.value' $(Pipeline.Workspace)/outputs.json)
@@ -44,6 +49,9 @@ steps:
           --name $AKS_NAME \
           --overwrite-existing
 
+        export KUBECONFIG=~/.kube/config
+        kubelogin convert-kubeconfig -l azurecli
+        
         # Create namespace if it does not exist
         kubectl create namespace $NAMESPACE \
           --dry-run=client -o yaml | kubectl apply -f -
