@@ -36,7 +36,7 @@ parameters:
 variables:
   - template: variables/${{ parameters.environment }}.yml
   - name: dockerRegistryServiceConnection
-    value: 'acr-service-connection'
+    value: 'acr-service-connection-docker'
   - name: imageRepository
     value: 'pyton-webapp'
   - name: dockerfilePath
@@ -70,171 +70,171 @@ stages:
             tags: '$(tag)'
 
 
-# STAGE 2: Terraform Validate
-- stage: TerraformValidate
-  displayName: 'Terraform Validate - ${{ parameters.environment }}'
-  dependsOn: 
-    - Build
-  condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
-  jobs:
-    - job: TerraformValidate
-      displayName: 'Terraform Validate'
-      pool:
-        name: azureciagent
-      steps:
-      - task: TerraformInstaller@1
-        inputs:
-          terraformVersion: '1.14.3'
+# # STAGE 2: Terraform Validate
+# - stage: TerraformValidate
+#   displayName: 'Terraform Validate - ${{ parameters.environment }}'
+#   dependsOn: 
+#     - Build
+#   condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
+#   jobs:
+#     - job: TerraformValidate
+#       displayName: 'Terraform Validate'
+#       pool:
+#         name: azureciagent
+#       steps:
+#       - task: TerraformInstaller@1
+#         inputs:
+#           terraformVersion: '1.14.3'
 
-      - task: TerraformTask@5
-        inputs:
-          provider: 'azurerm'
-          command: 'init'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-          backendAzureRmUseEntraIdForAuthentication: false
-          backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
-          backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
-          backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
-          backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
-          backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
+#       - task: TerraformTask@5
+#         inputs:
+#           provider: 'azurerm'
+#           command: 'init'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#           backendAzureRmUseEntraIdForAuthentication: false
+#           backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
+#           backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
+#           backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
+#           backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
+#           backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
       
-      - task: TerraformTask@5
-        inputs:
-          provider: 'azurerm'
-          command: 'validate'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#       - task: TerraformTask@5
+#         inputs:
+#           provider: 'azurerm'
+#           command: 'validate'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
 
 
-# STAGE 3: Terraform Plan
-- stage: TerraformPlan
-  displayName: 'Terraform Plan - ${{ parameters.environment }}'
-  dependsOn: 
-    - TerraformValidate
-  condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
-  jobs: 
-    - job: TerraformPlan
-      displayName: 'Terraform Plan'
-      pool:
-        name: azureciagent
-      steps:
-      - task: TerraformInstaller@1
-        inputs:
-          terraformVersion: '1.14.3'
+# # STAGE 3: Terraform Plan
+# - stage: TerraformPlan
+#   displayName: 'Terraform Plan - ${{ parameters.environment }}'
+#   dependsOn: 
+#     - TerraformValidate
+#   condition: or(eq('${{ parameters.action }}', 'deploy'), eq('${{ parameters.action }}', 'destroy'))
+#   jobs: 
+#     - job: TerraformPlan
+#       displayName: 'Terraform Plan'
+#       pool:
+#         name: azureciagent
+#       steps:
+#       - task: TerraformInstaller@1
+#         inputs:
+#           terraformVersion: '1.14.3'
     
-      - task: TerraformTask@5
-        inputs:
-          provider: 'azurerm'
-          command: 'init'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-          backendAzureRmUseEntraIdForAuthentication: false
-          backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
-          backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
-          backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
-          backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
-          backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
+#       - task: TerraformTask@5
+#         inputs:
+#           provider: 'azurerm'
+#           command: 'init'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#           backendAzureRmUseEntraIdForAuthentication: false
+#           backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
+#           backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
+#           backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
+#           backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
+#           backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
 
-      - task: TerraformTask@5
-        inputs:
-          provider: 'azurerm'
-          command: 'plan'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-          environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
+#       - task: TerraformTask@5
+#         inputs:
+#           provider: 'azurerm'
+#           command: 'plan'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
     
 
-# STAGE 5: Terraform Apply or Destroy
-- stage: TerraformApply
-  displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
-  dependsOn: TerraformPlan
-  condition: succeeded()
-  jobs:
-    - job: ApprovalGate
-      displayName: 'Manual Approval'
-      pool: server
-      steps:
-        - task: ManualValidation@0
-          inputs:
-            notifyUsers: 'sivaramk185@gmail.com'
-            instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
-            onTimeout: reject
+# # STAGE 5: Terraform Apply or Destroy
+# - stage: TerraformApply
+#   displayName: 'Terraform ${{ parameters.action }} - ${{ parameters.environment }}'
+#   dependsOn: TerraformPlan
+#   condition: succeeded()
+#   jobs:
+#     - job: ApprovalGate
+#       displayName: 'Manual Approval'
+#       pool: server
+#       steps:
+#         - task: ManualValidation@0
+#           inputs:
+#             notifyUsers: 'sivaramk185@gmail.com'
+#             instructions: 'Please review Terraform plan and approve to ${{ parameters.action }} ${{ parameters.environment }} infrastructure'
+#             onTimeout: reject
 
-    - job: TerraformApply
-      displayName: 'Terraform Apply'
-      dependsOn: ApprovalGate
-      pool:
-        name: azureciagent
-      steps:
-      - task: TerraformInstaller@1
-        inputs:
-          terraformVersion: '1.14.3'
+#     - job: TerraformApply
+#       displayName: 'Terraform Apply'
+#       dependsOn: ApprovalGate
+#       pool:
+#         name: azureciagent
+#       steps:
+#       - task: TerraformInstaller@1
+#         inputs:
+#           terraformVersion: '1.14.3'
     
-      - task: TerraformTask@5
-        inputs:
-          provider: 'azurerm'
-          command: 'init'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-          backendAzureRmUseEntraIdForAuthentication: false
-          backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
-          backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
-          backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
-          backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
-          backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
+#       - task: TerraformTask@5
+#         inputs:
+#           provider: 'azurerm'
+#           command: 'init'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#           backendAzureRmUseEntraIdForAuthentication: false
+#           backendServiceArm: '$(AZURE_SERVICE_CONNECTION)'
+#           backendAzureRmResourceGroupName: '$(BACKEND_RESOURCE_GROUP)'
+#           backendAzureRmStorageAccountName: '$(BACKEND_STORAGE_ACCOUNT)'
+#           backendAzureRmContainerName: '$(BACKEND_CONTAINER)'
+#           backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
 
-      - task: TerraformTask@5
-        inputs:
-          provider: 'azurerm'
-          command: '$(tfCommand)'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-          environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
+#       - task: TerraformTask@5
+#         inputs:
+#           provider: 'azurerm'
+#           command: '$(tfCommand)'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
 
-      - task: AzureCLI@2
-        displayName: 'Capture Terraform Outputs'
-        inputs:
-          azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
-          scriptType: 'bash'
-          scriptLocation: 'inlineScript'
-          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-          inlineScript: |
-            terraform output -json > $(System.DefaultWorkingDirectory)/outputs.json
+#       - task: AzureCLI@2
+#         displayName: 'Capture Terraform Outputs'
+#         inputs:
+#           azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+#           scriptType: 'bash'
+#           scriptLocation: 'inlineScript'
+#           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+#           inlineScript: |
+#             terraform output -json > $(System.DefaultWorkingDirectory)/outputs.json
             
-            echo "Successfully generated outputs.json"
-            cat $(System.DefaultWorkingDirectory)/outputs.json
-        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+#             echo "Successfully generated outputs.json"
+#             cat $(System.DefaultWorkingDirectory)/outputs.json
+#         condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
 
-      - task: PublishPipelineArtifact@1
-        displayName: 'Publish TF Outputs'
-        inputs:
-          targetPath: '$(System.DefaultWorkingDirectory)/outputs.json'
-          artifact: 'terraform-outputs-${{ parameters.environment }}'
-        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+#       - task: PublishPipelineArtifact@1
+#         displayName: 'Publish TF Outputs'
+#         inputs:
+#           targetPath: '$(System.DefaultWorkingDirectory)/outputs.json'
+#           artifact: 'terraform-outputs-${{ parameters.environment }}'
+#         condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
   
-# STAGE 6: Deploy to Kubernetes (only for deploy action)
-- stage: DeployK8s
-  displayName: 'Deploy to Kubernetes - ${{ parameters.environment }}'
-  dependsOn: TerraformApply
-  condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
-  jobs:
-    - job: ApprovalGate
-      displayName: 'Manual Approval'
-      pool: server
-      steps:
-        - task: ManualValidation@0
-          inputs:
-            notifyUsers: 'sivaramk185@gmail.com'
-            instructions: 'Approval required before deploying to K8s ${{ parameters.action }} ${{ parameters.environment }} cluster'
-            onTimeout: reject
+# # STAGE 6: Deploy to Kubernetes (only for deploy action)
+# - stage: DeployK8s
+#   displayName: 'Deploy to Kubernetes - ${{ parameters.environment }}'
+#   dependsOn: TerraformApply
+#   condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+#   jobs:
+#     - job: ApprovalGate
+#       displayName: 'Manual Approval'
+#       pool: server
+#       steps:
+#         - task: ManualValidation@0
+#           inputs:
+#             notifyUsers: 'sivaramk185@gmail.com'
+#             instructions: 'Approval required before deploying to K8s ${{ parameters.action }} ${{ parameters.environment }} cluster'
+#             onTimeout: reject
 
-    - deployment: DeployApp
-      displayName: 'Deploy Application'
-      dependsOn: ApprovalGate
-      environment: '${{ parameters.environment }}'
-      pool:
-        name: azureciagent
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - template: templates/deploy-k8s.yml
-                parameters:
-                  environment: '${{ parameters.environment }}'
-                  imageRepository: $(imageRepository)
-                  tag: $(tag)
+#     - deployment: DeployApp
+#       displayName: 'Deploy Application'
+#       dependsOn: ApprovalGate
+#       environment: '${{ parameters.environment }}'
+#       pool:
+#         name: azureciagent
+#       strategy:
+#         runOnce:
+#           deploy:
+#             steps:
+#               - template: templates/deploy-k8s.yml
+#                 parameters:
+#                   environment: '${{ parameters.environment }}'
+#                   imageRepository: $(imageRepository)
+#                   tag: $(tag)
