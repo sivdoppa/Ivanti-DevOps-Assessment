@@ -38,7 +38,7 @@ variables:
   - name: dockerRegistryServiceConnection
     value: 'acr-service-connection-docker'
   - name: imageRepository
-    value: 'pyton-webapp'
+    value: 'python-webapp'
   - name: dockerfilePath
     value: 'app/Dockerfile'
   - name: tag
