@@ -24,6 +24,14 @@ spec:
       ports:
         - protocol: TCP
           port: 5000
+
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0 # Allows all external traffic for testing
+      ports:
+        - protocol: TCP
+          port: 5000      
+          
   egress:
     - to:
         - ipBlock:
