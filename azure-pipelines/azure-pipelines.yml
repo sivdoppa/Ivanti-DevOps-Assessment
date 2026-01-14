@@ -186,13 +186,19 @@ stages:
           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
 
-      - bash: |
-          set -e
-          echo "Capturing Terraform outputs..."
-          terraform output -json > $(System.DefaultWorkingDirectory)/outputs.json
+      - task: AzureCLI@2
         displayName: 'Capture Terraform Outputs'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
-        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy'))
+        inputs:
+          azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
+          inlineScript: |
+            terraform output -json > $(System.DefaultWorkingDirectory)/outputs.json
+            
+            echo "Successfully generated outputs.json"
+            cat $(System.DefaultWorkingDirectory)/outputs.json
+        condition: and(succeeded(), eq('${{ parameters.action }}', 'deploy')
 
       - task: PublishPipelineArtifact@1
         displayName: 'Publish TF Outputs'
