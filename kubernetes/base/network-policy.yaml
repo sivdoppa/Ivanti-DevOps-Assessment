@@ -24,10 +24,10 @@ spec:
       ports:
         - protocol: TCP
           port: 5000
-egress:
-  - to:
-      - ipBlock:
-          cidr: 0.0.0.0/0
-    ports:
-      - protocol: TCP
-        port: 443
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
