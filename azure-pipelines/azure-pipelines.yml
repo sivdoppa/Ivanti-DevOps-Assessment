@@ -68,6 +68,15 @@ stages:
             command: 'buildAndPush'
             Dockerfile: '$(dockerfilePath)'
             tags: '$(tag)'
+        
+        - script: |
+            echo "--------------------------------------------------------"
+            echo "SUCCESS: Docker image has been pushed to the registry."
+            echo "Repository: $(imageRepository)"
+            echo "Tag: $(tag)"
+            echo "Full Image Path: acrdevkiyomu.azurecr.io/$(imageRepository):$(tag)"
+            echo "--------------------------------------------------------"
+          displayName: 'Log Image Details'
 
 
 # # STAGE 2: Terraform Validate
