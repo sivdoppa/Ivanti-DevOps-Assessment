@@ -51,7 +51,7 @@ steps:
 
         export KUBECONFIG=~/.kube/config
         kubelogin convert-kubeconfig -l azurecli
-        
+
         # Create namespace if it does not exist
         kubectl create namespace $NAMESPACE \
           --dry-run=client -o yaml | kubectl apply -f -
@@ -100,21 +100,4 @@ steps:
           echo "Service available at: http://$EXTERNAL_IP"
         fi
 
-        # ---------------------------------------------------
-        # Ingress info (if configured)
-        # ---------------------------------------------------
-        echo "If ingress is configured, access via:"
-        echo "https://webapp.yourdomain.com"
-
         echo "Deployment completed successfully."
-      
-  # - task: Kubernetes@1
-  #   displayName: 'Get Deployment Status'
-  #   inputs:
-  #     connectionType: 'Azure Resource Manager'
-  #     azureSubscriptionEndpoint: 'azure-service-connection'
-  #     azureResourceGroup: '$(cat $(Pipeline.Workspace)/outputs.json | jq -r .resource_group_name.value)'
-  #     kubernetesCluster: '$(cat $(Pipeline.Workspace)/outputs.json | jq -r .aks_cluster_name.value)'
-  #     namespace: '${{ parameters.environment }}'
-  #     command: 'get'
-  #     arguments: 'all'
