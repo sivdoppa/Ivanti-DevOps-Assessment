@@ -146,7 +146,7 @@ stages:
         inputs:
           provider: 'azurerm'
           command: 'plan'
-          arguments: '-lock=false ${{ if eq(parameters.action, "destroy") }}: -destroy'
+          arguments: ${{ format('-lock=false {0}', (eq(parameters.action, 'destroy') && '-destroy' || '')) }}
           workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/environments/${{ parameters.environment }}'
           environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION)'
     
