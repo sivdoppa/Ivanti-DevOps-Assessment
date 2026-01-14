@@ -36,7 +36,7 @@ parameters:
 variables:
   - template: variables/${{ parameters.environment }}.yml
   - name: dockerRegistryServiceConnection
-    value: 'acr-service-connection-docker'
+    value: 'acr-sc-docker'
   - name: imageRepository
     value: 'python-webapp'
   - name: dockerfilePath
