@@ -79,25 +79,32 @@ steps:
         kubectl rollout status deployment/$APP_NAME -n $NAMESPACE --timeout=5m
 
         # ---------------------------------------------------
-        # Try to get LoadBalancer IP (non-blocking)
+        # Get the Ingress Controller IP
         # ---------------------------------------------------
-        echo "Waiting for LoadBalancer IP..."
-        for i in {1..20}; do
-          EXTERNAL_IP=$(kubectl get svc ${APP_NAME}-service \
-            -n $NAMESPACE \
+        echo "Waiting for Ingress Public IP..."
+        
+        # We look in the 'ingress-nginx' namespace because that is where Terraform installed it
+        INGRESS_NS="ingress-nginx"
+        INGRESS_SVC="ingress-nginx-controller"
+
+        for i in {1..30}; do
+          EXTERNAL_IP=$(kubectl get svc $INGRESS_SVC \
+            -n $INGRESS_NS \
             -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
 
           if [ -n "$EXTERNAL_IP" ]; then
             break
           fi
-
-          sleep 15
+          echo "Still waiting for IP... (Attempt $i/30)"
+          sleep 10
         done
 
+        echo "---------------------------------------------------"
         if [ -z "$EXTERNAL_IP" ]; then
-          echo "LoadBalancer IP not assigned yet"
+          echo "LoadBalancer IP not assigned yet. Check Azure Portal."
         else
-          echo "Service available at: http://$EXTERNAL_IP"
+          echo "DEPLOYMENT SUCCESSFUL!"
+          echo "Your app is accessible at: http://$EXTERNAL_IP"
+          echo "Note: If you have a domain, point it to this IP."
         fi
-
-        echo "Deployment completed successfully."
+        echo "---------------------------------------------------"
