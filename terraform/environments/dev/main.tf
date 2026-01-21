@@ -27,14 +27,15 @@ provider "kubernetes" {
 
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "az"
+    command     = "kubelogin"
     args = [
-      "aks",
-      "get-credentials",
-      "--resource-group", azurerm_resource_group.main.name,
-      "--name", module.aks.cluster_name,
-      "--overwrite-existing",
-      "--admin"
+      "get-token",
+      "--login",
+      "azurecli",
+      "--environment",
+      "AzurePublicCloud",
+      "--server-id",
+      "6dae42f8-4368-4678-94d7-d3518b399999"
     ]
   }
 }
@@ -46,14 +47,15 @@ provider "helm" {
 
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "az"
+      command     = "kubelogin"
       args = [
-        "aks",
-        "get-credentials",
-        "--resource-group", azurerm_resource_group.main.name,
-        "--name", module.aks.cluster_name,
-        "--overwrite-existing",
-        "--admin"
+        "get-token",
+        "--login",
+        "azurecli",
+        "--environment",
+        "AzurePublicCloud",
+        "--server-id",
+        "6dae42f8-4368-4678-94d7-d3518b399999"
       ]
     }
   }
