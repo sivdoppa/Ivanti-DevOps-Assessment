@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# Ivanti_DevOps_Assessment
-This repo contains python application with end-to-end DevOps setup including Terraform-based infrastructure provisioning, AKS deployment, Kubernetes manifests, and CI/CD pipeline automation with Azure DevOps
-=======
 # DevOps Assessment Solution
 
 This repository contains a full-stack DevOps solution for deploying a Python web application on Linux containers using Azure Kubernetes Service (AKS), managed via Terraform and Azure DevOps Pipelines.
@@ -67,5 +63,4 @@ Self-Hosted Agent Pool: A private Ubuntu Linux agent was configured as a Self-Ho
 
 The application has been successfully deployed as a Linux Container within the AKS cluster. It is exposed to the public internet via an Azure Load Balancer.
 
-* **Visit the URL:** Open your web browser and navigate to the EXTERNAL-IP http://48.202.136.241
->>>>>>> feature-branch
+* **Visit the URL:** Open your web browser and navigate to the EXTERNAL-IP provided by the Azure load balancer
