@@ -10,11 +10,31 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.5"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.11.0"
+    }
   }
 }
 
 provider "azurerm" {
   features {}
+}
+
+provider "kubernetes" {
+  host                   = module.aks.cluster_endpoint
+  client_certificate     = base64decode(module.aks.client_certificate)
+  client_key             = base64decode(module.aks.client_key)
+  cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.aks.cluster_endpoint
+    client_certificate     = base64decode(module.aks.client_certificate)
+    client_key             = base64decode(module.aks.client_key)
+    cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
+  }
 }
 
 locals {
@@ -75,6 +95,17 @@ resource "azurerm_container_registry" "main" {
   admin_enabled       = false  # Use Managed Identity instead
   
   tags = local.common_tags
+}
+
+resource "helm_release" "nginx_ingress" {
+  name             = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart            = "ingress-nginx"
+  namespace        = "ingress-nginx"
+  create_namespace = true
+  version          = "4.8.3"
+  depends_on = [module.aks]
+  wait = true
 }
 
 # AKS Cluster Module

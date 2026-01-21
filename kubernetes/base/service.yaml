@@ -4,10 +4,8 @@ metadata:
   name: python-webapp-service
   labels:
     app: python-webapp
-  annotations:
-    service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /health
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: python-webapp
   ports:

@@ -8,6 +8,26 @@ output "cluster_name" {
   value       = azurerm_kubernetes_cluster.aks.name
 }
 
+output "cluster_endpoint" {
+  description = "AKS cluster Endpoint"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.host
+}
+
+output "client_certificate" {
+  description = "AKS Client Cert"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate
+}
+
+output "client_key" {
+  description = "AKS Client Key"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.client_key
+}
+
+output "cluster_ca_certificate" {
+  description = "AKS Client CA Cert"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate
+}
+
 output "kube_config" {
   description = "Kubernetes config"
   value       = azurerm_kubernetes_cluster.aks.kube_config_raw
