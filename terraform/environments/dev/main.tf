@@ -23,17 +23,39 @@ provider "azurerm" {
 
 provider "kubernetes" {
   host                   = module.aks.cluster_endpoint
-  client_certificate     = base64decode(module.aks.client_certificate)
-  client_key             = base64decode(module.aks.client_key)
   cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "az"
+    args = [
+      "aks",
+      "get-credentials",
+      "--resource-group", azurerm_resource_group.main.name,
+      "--name", module.aks.cluster_name,
+      "--overwrite-existing",
+      "--admin"
+    ]
+  }
 }
 
 provider "helm" {
   kubernetes {
     host                   = module.aks.cluster_endpoint
-    client_certificate     = base64decode(module.aks.client_certificate)
-    client_key             = base64decode(module.aks.client_key)
     cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
+
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "az"
+      args = [
+        "aks",
+        "get-credentials",
+        "--resource-group", azurerm_resource_group.main.name,
+        "--name", module.aks.cluster_name,
+        "--overwrite-existing",
+        "--admin"
+      ]
+    }
   }
 }
 
@@ -97,17 +119,6 @@ resource "azurerm_container_registry" "main" {
   tags = local.common_tags
 }
 
-resource "helm_release" "nginx_ingress" {
-  name             = "ingress-nginx"
-  repository       = "https://kubernetes.github.io/ingress-nginx"
-  chart            = "ingress-nginx"
-  namespace        = "ingress-nginx"
-  create_namespace = true
-  version          = "4.8.3"
-  depends_on = [module.aks]
-  wait = true
-}
-
 # AKS Cluster Module
 module "aks" {
   source = "../../modules/aks"
@@ -142,6 +153,17 @@ module "aks" {
   acr_id = azurerm_container_registry.main.id
   
   tags = local.common_tags
+}
+
+resource "helm_release" "nginx_ingress" {
+  name             = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart            = "ingress-nginx"
+  namespace        = "ingress-nginx"
+  create_namespace = true
+  version          = "4.8.3"
+  depends_on = [module.aks]
+  wait = true
 }
 
 # Key Vault for secrets
