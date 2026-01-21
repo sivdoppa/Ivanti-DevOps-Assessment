@@ -22,42 +22,14 @@ provider "azurerm" {
 }
 
 provider "kubernetes" {
-  host                   = module.aks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
-
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "kubelogin"
-    args = [
-      "get-token",
-      "--login",
-      "azurecli",
-      "--environment",
-      "AzurePublicCloud",
-      "--server-id",
-      "6dae42f8-4368-4678-94d7-d3518b399999"
-    ]
-  }
+  config_path    = "~/.kube/config"
+  config_context = "aks-dev-admin" 
 }
 
 provider "helm" {
   kubernetes {
-    host                   = module.aks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
-
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "kubelogin"
-      args = [
-        "get-token",
-        "--login",
-        "azurecli",
-        "--environment",
-        "AzurePublicCloud",
-        "--server-id",
-        "6dae42f8-4368-4678-94d7-d3518b399999"
-      ]
-    }
+    config_path    = "~/.kube/config"
+    config_context = "aks-dev-admin"
   }
 }
 
